@@ -3,7 +3,9 @@ package p2pnode
 import (
 	"context"
 	"crypto/rand"
+	"encoding/base64"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/libp2p/go-libp2p"
@@ -81,6 +83,14 @@ func LoadPrivKey(keyPath string) (crypto.PrivKey, error) {
 	return crypto.UnmarshalPrivateKey(data)
 }
 
+func LoadPrivKeyFromString(key string) (crypto.PrivKey, error) {
+	data, err := base64.URLEncoding.DecodeString(key)
+	if err != nil {
+		return nil, err
+	}
+	return crypto.UnmarshalPrivateKey(data)
+}
+
 func GenPrivKey(keyPath string) (crypto.PrivKey, error) {
 	priv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
@@ -92,6 +102,11 @@ func GenPrivKey(keyPath string) (crypto.PrivKey, error) {
 		return nil, err
 	}
 
-	err = os.WriteFile(keyPath, data, 0644)
+	buf := make([]byte, base64.URLEncoding.EncodedLen(len(data)))
+	base64.URLEncoding.Encode(buf, data)
+
+	log.Println("Generated private key: ", string(buf))
+
+	err = os.WriteFile(keyPath, buf, 0644)
 	return priv, err
 }
