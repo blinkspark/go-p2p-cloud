@@ -50,5 +50,4 @@ func start(keyPath string, port uint16) {
 	}
 
 	log.Println(node.MyAddrs())
-
 }
