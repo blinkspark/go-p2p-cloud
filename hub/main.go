@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"os/signal"
@@ -8,6 +9,8 @@ import (
 	"github.com/akamensky/argparse"
 	p2pnode "github.com/blinkspark/go-p2p-cloud/p2p-node"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/p2p/discovery/routing"
 )
 
 func main() {
@@ -21,8 +24,9 @@ func main() {
 	startcmd_port := startcmd.Int("p", "port", &argparse.Options{Help: "Port", Default: 32233})
 	startcmd_key := startcmd.String("k", "key", &argparse.Options{Help: "Key file path"})
 	startcmd_keyfile := startcmd.String("f", "keyfile", &argparse.Options{Help: "Key file path", Default: "key.txt"})
+	startcmd_dial := startcmd.String("d", "dial", &argparse.Options{Help: "Dial address"})
 
-	servercmd := parser.NewCommand("start", "Start a p2p-cloud service hub")
+	servercmd := parser.NewCommand("server", "Start a p2p-cloud service hub")
 	servercmd_port := servercmd.Int("p", "port", &argparse.Options{Help: "Port", Default: 32233})
 	servercmd_key := servercmd.String("k", "key", &argparse.Options{Help: "Key file path"})
 	servercmd_keyfile := servercmd.String("f", "keyfile", &argparse.Options{Help: "Key file path", Default: "key.txt"})
@@ -35,8 +39,7 @@ func main() {
 	if genkeycmd.Happened() {
 		genkey(*genkeycmd_key)
 	} else if startcmd.Happened() {
-		// log.Println(*startcmd_key, *startcmd_keyfile, *startcmd_port)
-		start(*startcmd_key, *startcmd_keyfile, uint16(*startcmd_port))
+		start(*startcmd_key, *startcmd_keyfile, *startcmd_dial, uint16(*startcmd_port))
 	} else if servercmd.Happened() {
 		server(*servercmd_key, *servercmd_keyfile, uint16(*servercmd_port))
 	}
@@ -49,7 +52,7 @@ func genkey(keyPath string) {
 	}
 }
 
-func start(key string, keyPath string, port uint16) {
+func start(key string, keyPath string, dial string, port uint16) {
 	var (
 		priv    crypto.PrivKey
 		err     error
@@ -63,6 +66,7 @@ func start(key string, keyPath string, port uint16) {
 			log.Panic(err)
 		}
 	} else {
+		log.Println("Loading key from", keyPath)
 		priv, err = p2pnode.LoadPrivKey(keyPath)
 		if err != nil {
 			log.Panic(err)
@@ -74,7 +78,22 @@ func start(key string, keyPath string, port uint16) {
 		log.Panic(err)
 	}
 
+	pi, err := peer.AddrInfoFromString(dial)
+	if err != nil {
+		log.Panic(err)
+	}
+	err = node.Connect(context.Background(), *pi)
+	if err != nil {
+		log.Panic(err)
+	}
+	log.Println("connected to", dial)
+
 	log.Println(node.MyAddrs())
+
+	disc := routing.NewRoutingDiscovery(node)
+	ttl, err := disc.Advertise(context.Background(), "nealfree.ml/p2p-cloud/service-hub")
+	log.Println("advertised:", ttl, err)
+
 	<-sigChan
 }
 
@@ -103,6 +122,11 @@ func server(key string, keyPath string, port uint16) {
 		log.Panic(err)
 	}
 
-	log.Println(node.MyAddrs())
+	topic, err := node.Join("nealfree.ml/p2p-cloud/service-hub/pubusb/v0.1.0")
+	if err != nil {
+		log.Panic(err)
+	}
+	log.Println("joined topic", topic)
+	log.Println("my addrs:", node.MyAddrs())
 	<-sigChan
 }

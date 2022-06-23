@@ -77,10 +77,15 @@ func listenAddrStrings(port uint16) []string {
 
 func LoadPrivKey(keyPath string) (crypto.PrivKey, error) {
 	data, err := os.ReadFile(keyPath)
+	log.Println(keyPath, data, err)
 	if err != nil {
 		return nil, err
 	}
-	return crypto.UnmarshalPrivateKey(data)
+	buf, err := base64.URLEncoding.DecodeString(string(data))
+	if err != nil {
+		return nil, err
+	}
+	return crypto.UnmarshalPrivateKey(buf)
 }
 
 func LoadPrivKeyFromString(key string) (crypto.PrivKey, error) {
