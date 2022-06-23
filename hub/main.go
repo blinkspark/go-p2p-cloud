@@ -159,6 +159,11 @@ func server(key string, keyPath string, port uint16) {
 		log.Panic(err)
 	}
 	log.Println("joined topic", topic)
+	_, err = topic.Subscribe()
+	if err != nil {
+		log.Panic(err)
+	}
+
 	log.Println("my addrs:", node.MyAddrs())
 	<-sigChan
 }
