@@ -37,6 +37,7 @@ func NewP2PNode(privKey crypto.PrivKey, port uint16) (*P2PNode, error) {
 	h, err := libp2p.New(
 		libp2p.Identity(privKey),
 		libp2p.ListenAddrStrings(listenAddrStrings(port)...),
+		libp2p.EnableNATService(),
 		libp2p.EnableAutoRelay(), libp2p.EnableHolePunching(), libp2p.NATPortMap(),
 		libp2p.Routing(func(h host.Host) (crouting.PeerRouting, error) {
 			var err error

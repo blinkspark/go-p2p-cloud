@@ -5,12 +5,12 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/akamensky/argparse"
 	p2pnode "github.com/blinkspark/go-p2p-cloud/p2p-node"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p/p2p/discovery/routing"
 )
 
 func main() {
@@ -90,9 +90,36 @@ func start(key string, keyPath string, dial string, port uint16) {
 
 	log.Println(node.MyAddrs())
 
-	disc := routing.NewRoutingDiscovery(node)
-	ttl, err := disc.Advertise(context.Background(), "nealfree.ml/p2p-cloud/service-hub")
-	log.Println("advertised:", ttl, err)
+	topic, err := node.Join("nealfree.ml/p2p-cloud/service-hub/pubusb/v0.1.0")
+	if err != nil {
+		log.Panic(err)
+	}
+	log.Println("joined topic", topic)
+
+	log.Println("pubsub peers:", topic.ListPeers())
+	sub, err := topic.Subscribe()
+	if err != nil {
+		log.Panic(err)
+	}
+	go func() {
+		for {
+			msg, err := sub.Next(context.Background())
+			if err != nil {
+				log.Panic(err)
+			}
+			log.Println("from:", msg.GetFrom(), "got message:", string(msg.GetData()))
+		}
+	}()
+
+	go func() {
+		for {
+			time.Sleep(time.Second)
+			err = topic.Publish(context.Background(), []byte("hello"))
+			if err != nil {
+				log.Println(err)
+			}
+		}
+	}()
 
 	<-sigChan
 }
