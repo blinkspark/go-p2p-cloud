@@ -24,7 +24,7 @@ func main() {
 	startcmd_port := startcmd.Int("p", "port", &argparse.Options{Help: "Port", Default: 32233})
 	startcmd_key := startcmd.String("k", "key", &argparse.Options{Help: "Key file path"})
 	startcmd_keyfile := startcmd.String("f", "keyfile", &argparse.Options{Help: "Key file path", Default: "key.txt"})
-	startcmd_dial := startcmd.String("d", "dial", &argparse.Options{Help: "Dial address"})
+	startcmd_dial := startcmd.String("d", "dial", &argparse.Options{Help: "Dial address", Required: true})
 
 	servercmd := parser.NewCommand("server", "Start a p2p-cloud service hub")
 	servercmd_port := servercmd.Int("p", "port", &argparse.Options{Help: "Port", Default: 32233})
@@ -104,6 +104,11 @@ func start(key string, keyPath string, dial string, port uint16) {
 	go func() {
 		for {
 			msg, err := sub.Next(context.Background())
+			peers := topic.ListPeers()
+			log.Println("pubsub peers:", peers)
+			// for _, p := range peers {
+			// 	log.Println("pubsub peer:", p, node.Peerstore().PeerInfo(p))
+			// }
 			if err != nil {
 				log.Panic(err)
 			}
@@ -113,7 +118,7 @@ func start(key string, keyPath string, dial string, port uint16) {
 
 	go func() {
 		for {
-			time.Sleep(time.Second)
+			time.Sleep(time.Second * 5)
 			err = topic.Publish(context.Background(), []byte("hello"))
 			if err != nil {
 				log.Println(err)
