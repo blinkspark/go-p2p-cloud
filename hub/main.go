@@ -173,13 +173,9 @@ func server(key string, keyPath string, port uint16) {
 
 	log.Println("my addrs:", node.MyAddrs())
 
-	time.Sleep(time.Second * 2)
 	dhtContent := "nealfree.ml/test/v0.1.0"
-	ttl, err := node.Advertise(context.Background(), dhtContent)
-	if err != nil {
-		log.Panic(err)
-	}
-	readverticeTicker := time.NewTicker(ttl)
+	dhtAdvTimer := time.NewTimer(time.Second * 10)
+	readverticeTicker := time.NewTicker(time.Hour * 3)
 
 	timer := time.NewTicker(time.Second * 15)
 loop:
@@ -196,6 +192,11 @@ loop:
 			_, err := node.Advertise(context.Background(), dhtContent)
 			if err != nil {
 				log.Print(err)
+			}
+		case <-dhtAdvTimer.C:
+			_, err := node.Advertise(context.Background(), dhtContent)
+			if err != nil {
+				log.Panic(err)
 			}
 		}
 	}
