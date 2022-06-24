@@ -175,6 +175,7 @@ loop:
 		case <-timer.C:
 			peers := node.Peerstore().Peers()
 			log.Println("peers:", len(peers))
+			log.Println("my addrs:", node.MyAddrs())
 		}
 	}
 

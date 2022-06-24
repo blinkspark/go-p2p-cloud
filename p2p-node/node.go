@@ -90,7 +90,6 @@ func listenAddrStrings(port uint16) []string {
 
 func LoadPrivKey(keyPath string) (crypto.PrivKey, error) {
 	data, err := os.ReadFile(keyPath)
-	log.Println(keyPath, data, err)
 	if err != nil {
 		return nil, err
 	}
