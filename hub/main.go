@@ -92,41 +92,31 @@ func start(key string, keyPath string, dial string, port uint16) {
 		log.Println("my addr:", addr)
 	}
 
-	// topic, err := node.Join("nealfree.ml/p2p-cloud/service-hub/pubusb/v0.1.0")
-	// if err != nil {
-	// 	log.Panic(err)
-	// }
-	// log.Println("joined topic", topic)
+	topic, err := node.Join("nealfree.ml/p2p-cloud/service-hub/pubusb/v0.1.0")
+	if err != nil {
+		log.Panic(err)
+	}
+	log.Println("joined topic", topic)
 
-	// log.Println("pubsub peers:", topic.ListPeers())
-	// sub, err := topic.Subscribe()
-	// if err != nil {
-	// 	log.Panic(err)
-	// }
-	// go func() {
-	// 	for {
-	// 		msg, err := sub.Next(context.Background())
-	// 		peers := topic.ListPeers()
-	// 		log.Println("pubsub peers:", peers)
-	// 		// for _, p := range peers {
-	// 		// 	log.Println("pubsub peer:", p, node.Peerstore().PeerInfo(p))
-	// 		// }
-	// 		if err != nil {
-	// 			log.Panic(err)
-	// 		}
-	// 		log.Println("from:", msg.GetFrom(), "got message:", string(msg.GetData()))
-	// 	}
-	// }()
-
-	// go func() {
-	// 	for {
-	// 		time.Sleep(time.Second * 5)
-	// 		err = topic.Publish(context.Background(), []byte("hello"))
-	// 		if err != nil {
-	// 			log.Println(err)
-	// 		}
-	// 	}
-	// }()
+	log.Println("pubsub peers:", topic.ListPeers())
+	sub, err := topic.Subscribe()
+	if err != nil {
+		log.Panic(err)
+	}
+	go func() {
+		for {
+			msg, err := sub.Next(context.Background())
+			peers := topic.ListPeers()
+			log.Println("pubsub peers:", peers)
+			// for _, p := range peers {
+			// 	log.Println("pubsub peer:", p, node.Peerstore().PeerInfo(p))
+			// }
+			if err != nil {
+				log.Panic(err)
+			}
+			log.Println("from:", msg.GetFrom(), "got message:", string(msg.GetData()))
+		}
+	}()
 
 	timer := time.NewTicker(time.Second * 10)
 cloop:
@@ -135,7 +125,6 @@ cloop:
 		case <-sigChan:
 			break cloop
 		case <-timer.C:
-			log.Println("Here")
 			myaddrs := node.MyAddrs()
 			for _, addr := range myaddrs {
 				log.Println("my addr:", addr)
@@ -189,7 +178,8 @@ loop:
 			break loop
 		case <-timer.C:
 			peers := node.Peerstore().Peers()
-			log.Println("peers:", len(peers))
+			log.Println("stored peers:", len(peers))
+			log.Println("connections:", len(node.Network().Conns()))
 			log.Println("my addrs:", node.MyAddrs())
 		}
 	}

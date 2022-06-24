@@ -16,6 +16,7 @@ import (
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/p2p/discovery/routing"
+	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
 )
 
 type P2PNode struct {
@@ -40,10 +41,15 @@ func (n *P2PNode) MyAddrs() (addrs []string) {
 func NewP2PNode(privKey crypto.PrivKey, port uint16) (*P2PNode, error) {
 	var dhtNode *dht.IpfsDHT
 
+	cm, err := connmgr.NewConnManager(100, 200)
+	if err != nil {
+		return nil, err
+	}
+
 	h, err := libp2p.New(
 		libp2p.Identity(privKey),
 		libp2p.ListenAddrStrings(listenAddrStrings(port)...),
-		libp2p.EnableNATService(),
+		libp2p.EnableNATService(), libp2p.ConnectionManager(cm),
 		libp2p.EnableAutoRelay(), libp2p.EnableHolePunching(), libp2p.NATPortMap(),
 		libp2p.Routing(func(h host.Host) (crouting.PeerRouting, error) {
 			var err error
