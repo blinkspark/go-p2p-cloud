@@ -114,7 +114,7 @@ func start(key string, keyPath string, port uint16) {
 	readverticeTicker := time.NewTicker(ttl)
 	pic, err := node.FindPeers(context.Background(), dhtContent)
 	if err != nil {
-		log.Panic(err)
+		log.Println(err)
 	}
 
 	timer := time.NewTicker(time.Second * 10)
@@ -173,6 +173,7 @@ func server(key string, keyPath string, port uint16) {
 
 	log.Println("my addrs:", node.MyAddrs())
 
+	time.Sleep(time.Second * 2)
 	dhtContent := "nealfree.ml/test/v0.1.0"
 	ttl, err := node.Advertise(context.Background(), dhtContent)
 	if err != nil {
