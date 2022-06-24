@@ -155,5 +155,20 @@ func server(key string, keyPath string, port uint16) {
 	}
 	log.Println("joined topic", topic)
 	log.Println("my addrs:", node.MyAddrs())
-	<-sigChan
+
+loop:
+	for {
+		select {
+		case <-sigChan:
+			break loop
+		default:
+			time.Sleep(time.Second * 15)
+			peers := node.Peerstore().Peers()
+			for _, peer := range peers {
+				log.Println("peer:", peer)
+				log.Println(node.Peerstore().Addrs(peer))
+			}
+		}
+	}
+
 }
