@@ -180,7 +180,7 @@ loop:
 			peers := node.Peerstore().Peers()
 			log.Println("stored peers:", len(peers))
 			log.Println("connections:", len(node.Network().Conns()))
-			log.Println("my addrs:", node.MyAddrs())
+			node.ShowMyAddrs()
 		}
 	}
 

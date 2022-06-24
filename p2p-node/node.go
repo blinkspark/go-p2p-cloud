@@ -33,6 +33,13 @@ func (n *P2PNode) MyAddrs() (addrs []string) {
 	return
 }
 
+func (n *P2PNode) ShowMyAddrs() {
+	addrs := n.MyAddrs()
+	for _, addr := range addrs {
+		log.Println(addr)
+	}
+}
+
 // BootstrapDefaultDHT bootstraps the DHT with the default bootstrap nodes.
 // func (n *P2PNode) BootstrapDefaultDHT(h host.Host) error {
 // 	ctx := context.Background()
