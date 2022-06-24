@@ -166,18 +166,15 @@ func server(key string, keyPath string, port uint16) {
 
 	log.Println("my addrs:", node.MyAddrs())
 
+	timer := time.NewTimer(time.Second * 15)
 loop:
 	for {
 		select {
 		case <-sigChan:
 			break loop
-		default:
-			time.Sleep(time.Second * 15)
+		case <-timer.C:
 			peers := node.Peerstore().Peers()
-			for _, peer := range peers {
-				log.Println("peer:", peer)
-				log.Println(node.Peerstore().Addrs(peer))
-			}
+			log.Println("peers:", len(peers))
 		}
 	}
 
