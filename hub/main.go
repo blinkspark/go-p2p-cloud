@@ -107,15 +107,13 @@ func start(key string, keyPath string, port uint16) {
 	}()
 
 	dhtContent := "nealfree.ml/test/v0.1.0"
-	ttl, err := node.Advertise(context.Background(), dhtContent)
-	if err != nil {
-		log.Panic(err)
-	}
-	readverticeTicker := time.NewTicker(ttl)
-	pic, err := node.FindPeers(context.Background(), dhtContent)
-	if err != nil {
-		log.Println(err)
-	}
+	// ttl, err := node.Advertise(context.Background(), dhtContent)
+	// if err != nil {
+	// 	log.Panic(err)
+	// }
+	// readverticeTicker := time.NewTicker(ttl)
+
+	findTimer := time.NewTimer(time.Second * 30)
 
 	timer := time.NewTicker(time.Second * 10)
 cloop:
@@ -125,13 +123,19 @@ cloop:
 			break cloop
 		case <-timer.C:
 			node.ShowMyAddrs()
-		case <-readverticeTicker.C:
-			_, err := node.Advertise(context.Background(), dhtContent)
+		// case <-readverticeTicker.C:
+		// 	_, err := node.Advertise(context.Background(), dhtContent)
+		// 	if err != nil {
+		// 		log.Print(err)
+		// 	}
+		case <-findTimer.C:
+			pic, err := node.FindPeers(context.Background(), dhtContent)
 			if err != nil {
-				log.Print(err)
+				log.Println(err)
 			}
-		case <-pic:
-			log.Println("found peer:", pic)
+			for pi := range pic {
+				log.Println("found peer:", pi)
+			}
 		}
 	}
 }
