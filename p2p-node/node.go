@@ -48,7 +48,7 @@ func (n *P2PNode) ShowMyAddrs() {
 func NewP2PNode(privKey crypto.PrivKey, port uint16) (*P2PNode, error) {
 	var dhtNode *dht.IpfsDHT
 
-	cm, err := connmgr.NewConnManager(100, 200)
+	cm, err := connmgr.NewConnManager(50, 100)
 	if err != nil {
 		return nil, err
 	}

@@ -10,7 +10,6 @@ import (
 	"github.com/akamensky/argparse"
 	p2pnode "github.com/blinkspark/go-p2p-cloud/p2p-node"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 func main() {
@@ -24,7 +23,6 @@ func main() {
 	startcmd_port := startcmd.Int("p", "port", &argparse.Options{Help: "Port", Default: 32233})
 	startcmd_key := startcmd.String("k", "key", &argparse.Options{Help: "Key file path"})
 	startcmd_keyfile := startcmd.String("f", "keyfile", &argparse.Options{Help: "Key file path", Default: "key.txt"})
-	startcmd_dial := startcmd.String("d", "dial", &argparse.Options{Help: "Dial address", Required: true})
 
 	servercmd := parser.NewCommand("server", "Start a p2p-cloud service hub")
 	servercmd_port := servercmd.Int("p", "port", &argparse.Options{Help: "Port", Default: 32233})
@@ -39,7 +37,7 @@ func main() {
 	if genkeycmd.Happened() {
 		genkey(*genkeycmd_key)
 	} else if startcmd.Happened() {
-		start(*startcmd_key, *startcmd_keyfile, *startcmd_dial, uint16(*startcmd_port))
+		start(*startcmd_key, *startcmd_keyfile, uint16(*startcmd_port))
 	} else if servercmd.Happened() {
 		server(*servercmd_key, *servercmd_keyfile, uint16(*servercmd_port))
 	}
@@ -52,7 +50,7 @@ func genkey(keyPath string) {
 	}
 }
 
-func start(key string, keyPath string, dial string, port uint16) {
+func start(key string, keyPath string, port uint16) {
 	var (
 		priv    crypto.PrivKey
 		err     error
@@ -76,16 +74,6 @@ func start(key string, keyPath string, dial string, port uint16) {
 	if err != nil {
 		log.Panic(err)
 	}
-
-	pi, err := peer.AddrInfoFromString(dial)
-	if err != nil {
-		log.Panic(err)
-	}
-	err = node.Connect(context.Background(), *pi)
-	if err != nil {
-		log.Panic(err)
-	}
-	log.Println("connected to", dial)
 
 	myaddrs := node.MyAddrs()
 	for _, addr := range myaddrs {
@@ -118,6 +106,17 @@ func start(key string, keyPath string, dial string, port uint16) {
 		}
 	}()
 
+	dhtContent := "nealfree.ml/test/v0.1.0"
+	ttl, err := node.Advertise(context.Background(), dhtContent)
+	if err != nil {
+		log.Panic(err)
+	}
+	readverticeTicker := time.NewTicker(ttl)
+	pic, err := node.FindPeers(context.Background(), dhtContent)
+	if err != nil {
+		log.Panic(err)
+	}
+
 	timer := time.NewTicker(time.Second * 10)
 cloop:
 	for {
@@ -125,10 +124,14 @@ cloop:
 		case <-sigChan:
 			break cloop
 		case <-timer.C:
-			myaddrs := node.MyAddrs()
-			for _, addr := range myaddrs {
-				log.Println("my addr:", addr)
+			node.ShowMyAddrs()
+		case <-readverticeTicker.C:
+			_, err := node.Advertise(context.Background(), dhtContent)
+			if err != nil {
+				log.Print(err)
 			}
+		case <-pic:
+			log.Println("found peer:", pic)
 		}
 	}
 }
@@ -170,6 +173,13 @@ func server(key string, keyPath string, port uint16) {
 
 	log.Println("my addrs:", node.MyAddrs())
 
+	dhtContent := "nealfree.ml/test/v0.1.0"
+	ttl, err := node.Advertise(context.Background(), dhtContent)
+	if err != nil {
+		log.Panic(err)
+	}
+	readverticeTicker := time.NewTicker(ttl)
+
 	timer := time.NewTicker(time.Second * 15)
 loop:
 	for {
@@ -181,6 +191,11 @@ loop:
 			log.Println("stored peers:", len(peers))
 			log.Println("connections:", len(node.Network().Conns()))
 			node.ShowMyAddrs()
+		case <-readverticeTicker.C:
+			_, err := node.Advertise(context.Background(), dhtContent)
+			if err != nil {
+				log.Print(err)
+			}
 		}
 	}
 
