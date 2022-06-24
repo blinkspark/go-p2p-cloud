@@ -11,6 +11,7 @@ import (
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
 	crouting "github.com/libp2p/go-libp2p-core/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -31,6 +32,11 @@ func (n *P2PNode) MyAddrs() (addrs []string) {
 	return
 }
 
+// BootstrapDefaultDHT bootstraps the DHT with the default bootstrap nodes.
+// func (n *P2PNode) BootstrapDefaultDHT(h host.Host) error {
+// 	ctx := context.Background()
+// 	dht.BootstrapPeers()
+// }
 func NewP2PNode(privKey crypto.PrivKey, port uint16) (*P2PNode, error) {
 	var dhtNode *dht.IpfsDHT
 
@@ -41,7 +47,11 @@ func NewP2PNode(privKey crypto.PrivKey, port uint16) (*P2PNode, error) {
 		libp2p.EnableAutoRelay(), libp2p.EnableHolePunching(), libp2p.NATPortMap(),
 		libp2p.Routing(func(h host.Host) (crouting.PeerRouting, error) {
 			var err error
-			dhtNode, err = dht.New(context.Background(), h)
+			dhtPIs, err := peer.AddrInfosFromP2pAddrs(dht.DefaultBootstrapPeers...)
+			if err != nil {
+				return nil, err
+			}
+			dhtNode, err = dht.New(context.Background(), h, dht.BootstrapPeers(dhtPIs...))
 			if err != nil {
 				return nil, err
 			}
