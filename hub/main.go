@@ -113,7 +113,7 @@ func start(key string, keyPath string, port uint16) {
 	// }
 	// readverticeTicker := time.NewTicker(ttl)
 
-	findTimer := time.NewTimer(time.Second * 30)
+	findTicker := time.NewTicker(time.Second * 20)
 
 	timer := time.NewTicker(time.Second * 10)
 cloop:
@@ -128,7 +128,7 @@ cloop:
 		// 	if err != nil {
 		// 		log.Print(err)
 		// 	}
-		case <-findTimer.C:
+		case <-findTicker.C:
 			pic, err := node.FindPeers(context.Background(), dhtContent)
 			if err != nil {
 				log.Println(err)
