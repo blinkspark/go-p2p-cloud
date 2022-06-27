@@ -7,13 +7,16 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
+	leveldb "github.com/ipfs/go-ds-leveldb"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	crouting "github.com/libp2p/go-libp2p-core/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
+	"github.com/libp2p/go-libp2p-peerstore/pstoreds"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
@@ -24,6 +27,7 @@ type P2PNode struct {
 	*dht.IpfsDHT
 	*routing.RoutingDiscovery
 	*pubsub.PubSub
+	advertiseTicker *time.Ticker
 }
 
 func (n *P2PNode) MyAddrs() (addrs []string) {
@@ -53,8 +57,20 @@ func NewP2PNode(privKey crypto.PrivKey, port uint16) (*P2PNode, error) {
 		return nil, err
 	}
 
+	ds, err := leveldb.NewDatastore("peerstore", nil)
+	if err != nil {
+		return nil, err
+	}
+	// defer ds.Close()
+	pstore, err := pstoreds.NewPeerstore(context.Background(), ds, pstoreds.DefaultOpts())
+	if err != nil {
+		return nil, err
+	}
+	// defer pstore.Close()
+
 	h, err := libp2p.New(
 		libp2p.Identity(privKey),
+		libp2p.Peerstore(pstore),
 		libp2p.ListenAddrStrings(listenAddrStrings(port)...),
 		libp2p.EnableNATService(), libp2p.ConnectionManager(cm),
 		libp2p.EnableAutoRelay(), libp2p.EnableHolePunching(), libp2p.NATPortMap(),
@@ -90,6 +106,45 @@ func NewP2PNode(privKey crypto.PrivKey, port uint16) (*P2PNode, error) {
 		RoutingDiscovery: routing.NewRoutingDiscovery(dhtNode),
 		PubSub:           ps,
 	}, nil
+}
+
+func (n *P2PNode) TestShowPeerCount() {
+	for range time.Tick(time.Second * 10) {
+		log.Println("peer count:", len(n.Peerstore().Peers()))
+	}
+}
+
+func (n *P2PNode) TestShowConnectionCount() {
+	for range time.Tick(time.Second * 10) {
+		log.Println("connection count:", len(n.Network().Conns()))
+	}
+}
+
+func (n *P2PNode) AdvertiseService(service string) {
+	var (
+		ttl   time.Duration
+		err   error
+		start = make(chan struct{})
+	)
+	go func() {
+		for {
+			time.Sleep(time.Second * 5)
+			ttl, err = n.RoutingDiscovery.Advertise(context.Background(), service)
+			log.Println("adv:", ttl, err)
+			if err == nil {
+				break
+			}
+		}
+		n.advertiseTicker = time.NewTicker(ttl)
+		close(start)
+	}()
+	go func() {
+		<-start
+		for range n.advertiseTicker.C {
+			ttl, err = n.RoutingDiscovery.Advertise(context.Background(), service)
+			log.Println("adv:", ttl, err)
+		}
+	}()
 }
 
 func listenAddrStrings(port uint16) []string {

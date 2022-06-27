@@ -17,17 +17,12 @@ func main() {
 	parser := argparse.NewParser("service-hub", "A p2p-cloud service hub")
 
 	genkeycmd := parser.NewCommand("genkey", "Generate a new private key")
-	genkeycmd_key := genkeycmd.String("k", "key", &argparse.Options{Help: "Key path", Default: "key.txt"})
+	genkeycmd_key := genkeycmd.String("f", "fpath", &argparse.Options{Help: "Key path", Default: "key.txt"})
 
 	startcmd := parser.NewCommand("start", "Start a p2p-cloud service hub")
 	startcmd_port := startcmd.Int("p", "port", &argparse.Options{Help: "Port", Default: 32233})
 	startcmd_key := startcmd.String("k", "key", &argparse.Options{Help: "Key file path"})
 	startcmd_keyfile := startcmd.String("f", "keyfile", &argparse.Options{Help: "Key file path", Default: "key.txt"})
-
-	servercmd := parser.NewCommand("server", "Start a p2p-cloud service hub")
-	servercmd_port := servercmd.Int("p", "port", &argparse.Options{Help: "Port", Default: 32233})
-	servercmd_key := servercmd.String("k", "key", &argparse.Options{Help: "Key file path"})
-	servercmd_keyfile := servercmd.String("f", "keyfile", &argparse.Options{Help: "Key file path", Default: "key.txt"})
 
 	err = parser.Parse(os.Args)
 	if err != nil {
@@ -38,8 +33,6 @@ func main() {
 		genkey(*genkeycmd_key)
 	} else if startcmd.Happened() {
 		start(*startcmd_key, *startcmd_keyfile, uint16(*startcmd_port))
-	} else if servercmd.Happened() {
-		server(*servercmd_key, *servercmd_keyfile, uint16(*servercmd_port))
 	}
 }
 
@@ -74,135 +67,28 @@ func start(key string, keyPath string, port uint16) {
 	if err != nil {
 		log.Panic(err)
 	}
+	log.Println("my id:", node.ID())
 
-	myaddrs := node.MyAddrs()
-	for _, addr := range myaddrs {
-		log.Println("my addr:", addr)
-	}
+	node.AdvertiseService("nealfree.ml/test/v0.1.1")
 
-	topic, err := node.Join("nealfree.ml/p2p-cloud/service-hub/pubusb/v0.1.0")
-	if err != nil {
-		log.Panic(err)
-	}
-	log.Println("joined topic", topic)
-
-	log.Println("pubsub peers:", topic.ListPeers())
-	sub, err := topic.Subscribe()
-	if err != nil {
-		log.Panic(err)
-	}
 	go func() {
 		for {
-			msg, err := sub.Next(context.Background())
-			peers := topic.ListPeers()
-			log.Println("pubsub peers:", peers)
-			// for _, p := range peers {
-			// 	log.Println("pubsub peer:", p, node.Peerstore().PeerInfo(p))
-			// }
-			if err != nil {
-				log.Panic(err)
-			}
-			log.Println("from:", msg.GetFrom(), "got message:", string(msg.GetData()))
-		}
-	}()
-
-	dhtContent := "nealfree.ml/test/v0.1.0"
-	// ttl, err := node.Advertise(context.Background(), dhtContent)
-	// if err != nil {
-	// 	log.Panic(err)
-	// }
-	// readverticeTicker := time.NewTicker(ttl)
-
-	findTicker := time.NewTicker(time.Second * 20)
-
-	timer := time.NewTicker(time.Second * 10)
-cloop:
-	for {
-		select {
-		case <-sigChan:
-			break cloop
-		case <-timer.C:
-			node.ShowMyAddrs()
-		// case <-readverticeTicker.C:
-		// 	_, err := node.Advertise(context.Background(), dhtContent)
-		// 	if err != nil {
-		// 		log.Print(err)
-		// 	}
-		case <-findTicker.C:
-			pic, err := node.FindPeers(context.Background(), dhtContent)
+			pic, err := node.FindPeers(context.Background(), "nealfree.ml/test/v0.1.1")
 			if err != nil {
 				log.Println(err)
 			}
-			for pi := range pic {
-				log.Println("found peer:", pi)
+			for p := range pic {
+				log.Println(p)
 			}
+			time.Sleep(time.Second * 5)
 		}
-	}
-}
+	}()
 
-func server(key string, keyPath string, port uint16) {
-	var (
-		priv    crypto.PrivKey
-		err     error
-		sigChan chan os.Signal = make(chan os.Signal, 1)
-	)
-	signal.Notify(sigChan, os.Interrupt)
+	go node.TestShowPeerCount()
+	go node.TestShowConnectionCount()
 
-	if key != "" {
-		priv, err = p2pnode.LoadPrivKeyFromString(key)
-		if err != nil {
-			log.Panic(err)
-		}
-	} else {
-		priv, err = p2pnode.LoadPrivKey(keyPath)
-		if err != nil {
-			log.Panic(err)
-		}
-	}
-
-	node, err := p2pnode.NewP2PNode(priv, port)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	// topic, err := node.Join("nealfree.ml/p2p-cloud/service-hub/pubusb/v0.1.0")
-	// if err != nil {
-	// 	log.Panic(err)
-	// }
-	// log.Println("joined topic", topic)
-	// _, err = topic.Subscribe()
-	// if err != nil {
-	// 	log.Panic(err)
-	// }
-
-	log.Println("my addrs:", node.MyAddrs())
-
-	dhtContent := "nealfree.ml/test/v0.1.0"
-	dhtAdvTimer := time.NewTimer(time.Second * 10)
-	readverticeTicker := time.NewTicker(time.Hour * 3)
-
-	timer := time.NewTicker(time.Second * 15)
-loop:
-	for {
-		select {
-		case <-sigChan:
-			break loop
-		case <-timer.C:
-			peers := node.Peerstore().Peers()
-			log.Println("stored peers:", len(peers))
-			log.Println("connections:", len(node.Network().Conns()))
-			node.ShowMyAddrs()
-		case <-readverticeTicker.C:
-			_, err := node.Advertise(context.Background(), dhtContent)
-			if err != nil {
-				log.Print(err)
-			}
-		case <-dhtAdvTimer.C:
-			_, err := node.Advertise(context.Background(), dhtContent)
-			if err != nil {
-				log.Panic(err)
-			}
-		}
-	}
-
+	<-sigChan
+	node.Host.Close()
+	node.IpfsDHT.Close()
+	node.Peerstore().Close()
 }

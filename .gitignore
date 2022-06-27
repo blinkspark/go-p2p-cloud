@@ -16,3 +16,4 @@
 build/
 key.txt
 note.txt
+peerstore/
