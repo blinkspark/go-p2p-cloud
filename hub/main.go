@@ -72,7 +72,7 @@ func start(key string, keyPath string, port uint16) {
 
 	node.AdvertiseService("nealfree.ml/test/v0.1.1")
 	node.SetStreamHandler("nealfree.ml/test/v0.1.1", func(s network.Stream) {
-		log.Println("received a stream")
+		log.Println("received a stream ssssssssssssssssssssssssssssssssssssssssss")
 		s.Close()
 	})
 
@@ -89,14 +89,15 @@ func start(key string, keyPath string, port uint16) {
 					log.Println(err)
 				}
 
-				if p.ID == node.ID() {
+				if p.ID == node.ID() || len(p.Addrs) == 0 {
+					log.Println("skip self or empty addr")
 					continue
 				}
 				s, err := node.NewStream(context.Background(), p.ID, "nealfree.ml/test/v0.1.1")
 				if err != nil {
-					log.Println(err)
+					log.Println(s, err)
 				}
-				s.Close()
+				// s.Close()
 			}
 			time.Sleep(time.Second * 5)
 		}
