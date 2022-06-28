@@ -13,13 +13,13 @@ import (
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
 	crouting "github.com/libp2p/go-libp2p-core/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-peerstore/pstoreds"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
+	"github.com/libp2p/go-libp2p/p2p/protocol/ping"
 )
 
 type P2PNode struct {
@@ -72,14 +72,13 @@ func NewP2PNode(privKey crypto.PrivKey, port uint16) (*P2PNode, error) {
 		libp2p.Identity(privKey),
 		libp2p.Peerstore(pstore),
 		libp2p.ListenAddrStrings(listenAddrStrings(port)...),
-		libp2p.EnableNATService(), libp2p.ConnectionManager(cm),
+		libp2p.EnableNATService(),
+		libp2p.ConnectionManager(cm),
 		libp2p.EnableAutoRelay(), libp2p.EnableHolePunching(), libp2p.NATPortMap(),
 		libp2p.Routing(func(h host.Host) (crouting.PeerRouting, error) {
 			var err error
-			dhtPIs, err := peer.AddrInfosFromP2pAddrs(dht.DefaultBootstrapPeers...)
-			if err != nil {
-				return nil, err
-			}
+			dhtPIs := dht.GetDefaultBootstrapPeerAddrInfos()
+
 			dhtNode, err = dht.New(context.Background(), h, dht.BootstrapPeers(dhtPIs...))
 			if err != nil {
 				return nil, err
@@ -117,6 +116,17 @@ func (n *P2PNode) TestShowPeerCount() {
 func (n *P2PNode) TestShowConnectionCount() {
 	for range time.Tick(time.Second * 10) {
 		log.Println("connection count:", len(n.Network().Conns()))
+	}
+}
+
+func (n *P2PNode) TestPings() {
+	log.Println("pinging...")
+	for range time.Tick(time.Second * 30) {
+		for _, conn := range n.Network().Conns() {
+			log.Println("pinging:", conn.RemotePeer())
+			res := <-ping.Ping(context.Background(), n.Host, conn.RemotePeer())
+			log.Println("ping:", conn.RemotePeer(), res.RTT)
+		}
 	}
 }
 

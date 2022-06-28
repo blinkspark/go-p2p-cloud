@@ -10,6 +10,7 @@ import (
 	"github.com/akamensky/argparse"
 	p2pnode "github.com/blinkspark/go-p2p-cloud/p2p-node"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/network"
 )
 
 func main() {
@@ -70,6 +71,10 @@ func start(key string, keyPath string, port uint16) {
 	log.Println("my id:", node.ID())
 
 	node.AdvertiseService("nealfree.ml/test/v0.1.1")
+	node.SetStreamHandler("nealfree.ml/test/v0.1.1", func(s network.Stream) {
+		log.Println("received a stream")
+		s.Close()
+	})
 
 	go func() {
 		for {
@@ -79,6 +84,15 @@ func start(key string, keyPath string, port uint16) {
 			}
 			for p := range pic {
 				log.Println(p)
+				err = node.Connect(context.Background(), p)
+				if err != nil {
+					log.Println(err)
+				}
+				s, err := node.NewStream(context.Background(), p.ID, "nealfree.ml/test/v0.1.1")
+				if err != nil {
+					log.Println(err)
+				}
+				s.Close()
 			}
 			time.Sleep(time.Second * 5)
 		}
@@ -86,6 +100,7 @@ func start(key string, keyPath string, port uint16) {
 
 	go node.TestShowPeerCount()
 	go node.TestShowConnectionCount()
+	go node.TestPings()
 
 	<-sigChan
 	node.Host.Close()
