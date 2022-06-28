@@ -88,6 +88,10 @@ func start(key string, keyPath string, port uint16) {
 				if err != nil {
 					log.Println(err)
 				}
+
+				if p.ID == node.ID() {
+					continue
+				}
 				s, err := node.NewStream(context.Background(), p.ID, "nealfree.ml/test/v0.1.1")
 				if err != nil {
 					log.Println(err)
@@ -98,9 +102,9 @@ func start(key string, keyPath string, port uint16) {
 		}
 	}()
 
-	go node.TestShowPeerCount()
-	go node.TestShowConnectionCount()
-	go node.TestPings()
+	// go node.TestShowPeerCount()
+	// go node.TestShowConnectionCount()
+	// go node.TestPings()
 
 	<-sigChan
 	node.Host.Close()
