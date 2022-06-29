@@ -5,11 +5,13 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"time"
 
 	"github.com/akamensky/argparse"
 	p2pnode "github.com/blinkspark/go-p2p-cloud/p2p-node"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 func main() {
@@ -23,6 +25,7 @@ func main() {
 	startcmd_port := startcmd.Int("p", "port", &argparse.Options{Help: "Port", Default: 32233})
 	startcmd_key := startcmd.String("k", "key", &argparse.Options{Help: "Key file path"})
 	startcmd_keyfile := startcmd.String("f", "keyfile", &argparse.Options{Help: "Key file path", Default: "key.txt"})
+	startcmd_boot := startcmd.StringList("b", "bootstrap", &argparse.Options{Help: "Bootstrap nodes"})
 
 	err = parser.Parse(os.Args)
 	if err != nil {
@@ -32,7 +35,7 @@ func main() {
 	if genkeycmd.Happened() {
 		genkey(*genkeycmd_key)
 	} else if startcmd.Happened() {
-		start(*startcmd_key, *startcmd_keyfile, uint16(*startcmd_port))
+		start(*startcmd_key, *startcmd_keyfile, *startcmd_boot, uint16(*startcmd_port))
 	}
 }
 
@@ -43,7 +46,7 @@ func genkey(keyPath string) {
 	}
 }
 
-func start(key string, keyPath string, port uint16) {
+func start(key string, keyPath string, bootstrap []string, port uint16) {
 	var (
 		priv    crypto.PrivKey
 		err     error
@@ -69,11 +72,31 @@ func start(key string, keyPath string, port uint16) {
 	}
 	log.Println("my id:", node.ID())
 
+	wg := sync.WaitGroup{}
+	for _, b := range bootstrap {
+		wg.Add(1)
+		go func(b string) {
+			defer wg.Done()
+			log.Println("connecting to bootstrap:", b)
+			pi, err := peer.AddrInfoFromString(b)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			err = node.Connect(context.Background(), *pi)
+			if err != nil {
+				log.Println(err)
+			}
+		}(b)
+	}
+	wg.Wait()
+
 	node.AdvertiseService("nealfree.ml/test/v0.1.1")
 
 	go func() {
 		for {
 			pic, err := node.FindPeers(context.Background(), "nealfree.ml/test/v0.1.1")
+			log.Println("found:")
 			if err != nil {
 				log.Println(err)
 			}
@@ -88,7 +111,5 @@ func start(key string, keyPath string, port uint16) {
 	go node.TestShowConnectionCount()
 
 	<-sigChan
-	node.Host.Close()
-	node.IpfsDHT.Close()
-	node.Peerstore().Close()
+	node.CloseAll()
 }

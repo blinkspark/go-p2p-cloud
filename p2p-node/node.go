@@ -44,6 +44,12 @@ func (n *P2PNode) ShowMyAddrs() {
 	}
 }
 
+func (n *P2PNode) CloseAll() {
+	n.Host.Close()
+	n.IpfsDHT.Close()
+	n.Peerstore().Close()
+}
+
 // BootstrapDefaultDHT bootstraps the DHT with the default bootstrap nodes.
 // func (n *P2PNode) BootstrapDefaultDHT(h host.Host) error {
 // 	ctx := context.Background()
