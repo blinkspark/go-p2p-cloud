@@ -95,8 +95,14 @@ func start(key string, keyPath string, bootstrap []string, port uint16) {
 
 	node.AdvertiseService("nealfree.ml/test/v0.1.1")
 	node.SetStreamHandler("nealfree.ml/test/v0.1.1", func(s network.Stream) {
-		log.Println("received a stream ssssssssssssssssssssssssssssssssssssssssss")
-		s.Close()
+		defer s.Close()
+		buf := make([]byte, 1024)
+		n, err := s.Read(buf)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		log.Println("received:", string(buf[:n]))
 	})
 
 	go func() {
@@ -120,6 +126,7 @@ func start(key string, keyPath string, bootstrap []string, port uint16) {
 				if err != nil {
 					log.Println(s, err)
 				}
+				s.Write([]byte("hello SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS"))
 				// s.Close()
 			}
 			time.Sleep(time.Second * 5)
