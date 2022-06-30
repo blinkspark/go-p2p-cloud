@@ -13,6 +13,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 )
 
 func main() {
@@ -101,21 +102,20 @@ func start(key string, keyPath string, bootstrap []string, port uint16) {
 	go func() {
 		for {
 			pic, err := node.FindPeers(context.Background(), "nealfree.ml/test/v0.1.1")
-			log.Println("found:")
+			log.Println("founding peers...")
 			if err != nil {
 				log.Println(err)
 			}
 			for p := range pic {
 				log.Println(p)
-				err = node.Connect(context.Background(), p)
-				if err != nil {
-					log.Println(err)
-				}
-
 				if p.ID == node.ID() || len(p.Addrs) == 0 {
 					log.Println("skip self or empty addr")
 					continue
 				}
+
+				node.Peerstore().SetAddrs(p.ID, p.Addrs, peerstore.AddressTTL)
+				log.Println("add peer", p.ID, "to peerstore")
+
 				s, err := node.NewStream(context.Background(), p.ID, "nealfree.ml/test/v0.1.1")
 				if err != nil {
 					log.Println(s, err)
