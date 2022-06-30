@@ -125,6 +125,7 @@ func start(key string, keyPath string, bootstrap []string, port uint16) {
 				s, err := node.NewStream(context.Background(), p.ID, "nealfree.ml/test/v0.1.1")
 				if err != nil {
 					log.Println(s, err)
+					continue
 				}
 				s.Write([]byte("hello SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS"))
 				// s.Close()
