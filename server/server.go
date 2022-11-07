@@ -6,6 +6,8 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
@@ -64,7 +66,7 @@ func NewServer(keyPath string, port int, protocol string) (s *Server, err error)
 	// 	return nil, err
 	// }
 	h, err := libp2p.New(libp2p.Identity(priv), libp2p.ListenAddrStrings(makeAddrs(port)...),
-		libp2p.EnableNATService(), libp2p.EnableRelayService())
+		libp2p.EnableNATService(), libp2p.EnableRelayService(), libp2p.ForceReachabilityPublic())
 	if err != nil {
 		return nil, err
 	}
@@ -89,16 +91,25 @@ func (s *Server) Bootstrap() error {
 	if err != nil {
 		return err
 	}
-	go func() {
-		for _, pi := range pis {
+	var wg sync.WaitGroup
+	for _, pi := range pis {
+		wg.Add(1)
+		go func(pi peer.AddrInfo) {
 			err = s.Connect(context.Background(), pi)
 			if err != nil {
 				log.Println(err)
-				continue
 			}
+			wg.Done()
+		}(pi)
+	}
+	wg.Wait()
+	go func() {
+		for {
+			var ttl time.Duration
+			ttl, err = s.RoutingDiscovery.Advertise(context.Background(), s.protocol)
+			time.Sleep(ttl)
 		}
 	}()
-	_, err = s.RoutingDiscovery.Advertise(context.Background(), s.protocol)
 	return err
 }
 
