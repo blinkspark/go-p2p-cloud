@@ -64,7 +64,7 @@ func play_relay() {
 				log.Println(err)
 				continue
 			}
-			log.Println("dial successfully")
+			log.Println("---dial successfully---")
 		}
 	}()
 	go func() {
