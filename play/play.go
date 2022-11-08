@@ -23,7 +23,9 @@ func play_relay() {
 	if err != nil {
 		log.Panic(err)
 	}
-	h, err := libp2p.New(libp2p.EnableHolePunching(), libp2p.EnableAutoRelay(autorelay.WithStaticRelays([]peer.AddrInfo{*addr})))
+	h, err := libp2p.New(
+		libp2p.EnableHolePunching(), libp2p.EnableNATService(), libp2p.EnableRelayService(),
+		libp2p.EnableAutoRelay(autorelay.WithStaticRelays([]peer.AddrInfo{*addr})))
 	if err != nil {
 		log.Panic(err)
 	}
@@ -102,7 +104,7 @@ func play_relay() {
 }
 
 func play_s() {
-	s, err := server.NewServer("test.key", 62233, "")
+	s, err := server.NewServer("test.key", 62233)
 	if err != nil {
 		log.Panic(err)
 	}

@@ -21,17 +21,13 @@ func init() {
 }
 
 func main() {
-	s, err := server.NewServer(keyPath, port, protocol)
+	s, err := server.NewServer(keyPath, port)
 	if err != nil {
 		log.Panic(err)
 	}
-	log.Println(s.ID().Pretty())
+	sid := s.ID()
 	for _, addr := range s.Addrs() {
-		log.Println(addr.String())
-	}
-	err = s.Bootstrap()
-	if err != nil {
-		log.Panic(err)
+		log.Printf("%s/p2p/%s", addr.String(), sid.Pretty())
 	}
 	select {}
 }
