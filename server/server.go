@@ -58,6 +58,7 @@ func NewServer(keyPath string, port int) (s *Server, err error) {
 	// }
 	h, err := libp2p.New(libp2p.Identity(priv), libp2p.ListenAddrStrings(makeAddrs(port)...),
 		libp2p.EnableNATService(), libp2p.EnableRelayService(), libp2p.ForceReachabilityPublic())
+		libp2p.EnableNATService(), libp2p.EnableRelayService(), libp2p.ForceReachabilityPublic())
 	if err != nil {
 		return nil, err
 	}
