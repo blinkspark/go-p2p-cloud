@@ -98,6 +98,7 @@ func (c *Client) bootstrap() error {
 	if err != nil {
 		return err
 	}
+	c.fileProtocol()
 	return nil
 }
 
