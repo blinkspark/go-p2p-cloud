@@ -17,9 +17,9 @@ func main() {
 			time.Sleep(5 * time.Second)
 			conns := c.Network().Conns()
 			log.Printf("connected:%d", len(conns))
-			for _, con := range conns {
-				log.Println(con.RemotePeer().Pretty())
-			}
+			// for _, con := range conns {
+			// 	log.Println(con.RemotePeer().Pretty())
+			// }
 		}
 	}()
 	select {}
