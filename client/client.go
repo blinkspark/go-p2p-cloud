@@ -5,13 +5,16 @@ import (
 	"crypto/rand"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/blinkspark/go-p2p-cloud/key"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	crypto "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	"github.com/libp2p/go-libp2p/p2p/host/autorelay"
 )
@@ -22,6 +25,10 @@ type Client struct {
 	*drouting.RoutingDiscovery
 	relays []peer.AddrInfo
 }
+
+const (
+	fileProtocol = "/nealfree.ml/file/v0.1.0"
+)
 
 func NewClient(keyPath string) (*Client, error) {
 	// TODO add a function to get static relays
@@ -77,17 +84,50 @@ func (c *Client) bootstrap() error {
 	var wg sync.WaitGroup
 	for _, p := range bsPeers {
 		wg.Add(1)
-		go func(p *peer.AddrInfo) {
+		go func(p peer.AddrInfo) {
 			defer wg.Done()
-			err := c.Connect(context.Background(), *p)
+			err := c.Connect(context.Background(), p)
 			if err != nil {
 				log.Println(err)
 			}
-		}(&p)
+			log.Println("connected:", p.String())
+		}(p)
 	}
+	wg.Wait()
 	err = c.Bootstrap(context.Background())
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func (c *Client) Advertise(protocol string) {
+	go func() {
+		for {
+			ttl, err := c.RoutingDiscovery.Advertise(context.Background(), protocol)
+			if err != nil {
+				continue
+			}
+			time.Sleep(ttl)
+		}
+	}()
+}
+
+func (c *Client) HandleProtocol(proto string, handler network.StreamHandler) {
+	c.Advertise(proto)
+	c.SetStreamHandler(protocol.ID(proto), handler)
+}
+
+func (c *Client) fileProtocol() {
+	c.HandleProtocol(fileProtocol, func(s network.Stream) {
+		defer s.Close()
+		// reader := bufio.NewReader(s)
+		// writer := bufio.NewWriter(s)
+		// cmd, err := reader.ReadString('\n')
+		// data, err := reader.ReadBytes('\n')
+		// if err != nil {
+		// 	log.Println(err)
+		// 	return
+		// }
+	})
 }
