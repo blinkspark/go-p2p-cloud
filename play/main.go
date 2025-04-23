@@ -17,5 +17,18 @@ func main() {
 		log.Printf("%s\n", addr)
 	}
 
+	log.Println("Advertising:")
+	p2pClient.Advertise("/neal/test")
+
+	log.Println("Finding Peers:")
+	peers, err := p2pClient.FindPeers("/neal/test")
+	if err != nil {
+		log.Panic(err)
+	}
+
+	for peer := range peers {
+		log.Printf("found peer: %s\n", peer)
+	}
+
 	select {}
 }

@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/blinkspark/go-p2p-cloud/config"
 	"github.com/libp2p/go-libp2p"
@@ -16,6 +17,48 @@ type Client struct {
 	host      host.Host
 	dhtNode   *dht.IpfsDHT
 	discovery *routing.RoutingDiscovery
+}
+
+func (c *Client) Advertise(serviceName string) {
+	go func() {
+		_, err := c.discovery.Advertise(context.Background(), serviceName)
+		if err != nil {
+			log.Printf("Failed to advertise service %s: %v\n", serviceName, err)
+		}
+	}()
+}
+
+func (c *Client) FindPeers(serviceName string) (<-chan peer.AddrInfo, error) {
+	return c.discovery.FindPeers(context.Background(), serviceName)
+}
+
+func (c *Client) Peers() []peer.ID {
+	return c.host.Network().Peers()
+}
+
+func (c *Client) Bootstrap() error {
+	for _, addr := range dht.DefaultBootstrapPeers {
+		pi, err := peer.AddrInfoFromP2pAddr(addr)
+		if err != nil {
+			log.Printf("Failed to parse address: %v\n", err)
+			continue
+		}
+		go func() {
+			err = c.host.Connect(context.Background(), *pi)
+			if err != nil {
+				log.Printf("Failed to connect to peer %s: %v\n", addr, err)
+			} else {
+				log.Printf("Connected to peer %s\n", addr)
+			}
+		}()
+		time.Sleep(time.Second)
+	}
+
+	err := c.dhtNode.Bootstrap(context.Background())
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *Client) Addrs() []string {
@@ -62,25 +105,17 @@ func NewClient(configPath string) (*Client, error) {
 	}
 	discovery := routing.NewRoutingDiscovery(dhtNode)
 
-	for _, addr := range dht.DefaultBootstrapPeers {
-		pi, err := peer.AddrInfoFromP2pAddr(addr)
-		if err != nil {
-			log.Printf("Failed to parse address: %v\n", err)
-			continue
-		}
-		go func() {
-			err = h.Connect(context.Background(), *pi)
-			if err != nil {
-				log.Printf("Failed to connect to peer %s: %v\n", addr, err)
-			} else {
-				log.Printf("Connected to peer %s\n", addr)
-			}
-		}()
-	}
-
-	return &Client{
+	client := &Client{
 		host:      h,
 		dhtNode:   dhtNode,
 		discovery: discovery,
-	}, nil
+	}
+
+	log.Println("Bootstraping...")
+	err = client.Bootstrap()
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
 }
