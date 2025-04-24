@@ -5,6 +5,7 @@ go 1.24.2
 require (
 	github.com/libp2p/go-libp2p v0.41.1
 	github.com/libp2p/go-libp2p-kad-dht v0.31.0
+	github.com/libp2p/go-libp2p-pubsub v0.13.1
 )
 
 require (
@@ -29,6 +30,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
+	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/ipfs/boxo v0.29.1 // indirect
 	github.com/ipfs/go-cid v0.5.0 // indirect

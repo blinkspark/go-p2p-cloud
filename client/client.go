@@ -11,12 +11,15 @@ import (
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/p2p/discovery/routing"
+
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
 type Client struct {
 	host      host.Host
 	dhtNode   *dht.IpfsDHT
 	discovery *routing.RoutingDiscovery
+	pubsub    *pubsub.PubSub
 }
 
 func (c *Client) Advertise(serviceName string) {
@@ -105,10 +108,16 @@ func NewClient(configPath string) (*Client, error) {
 	}
 	discovery := routing.NewRoutingDiscovery(dhtNode)
 
+	ps, err := pubsub.NewGossipSub(context.Background(), h)
+	if err != nil {
+		return nil, err
+	}
+
 	client := &Client{
 		host:      h,
 		dhtNode:   dhtNode,
 		discovery: discovery,
+		pubsub:    ps,
 	}
 
 	log.Println("Bootstraping...")
