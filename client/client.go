@@ -20,6 +20,7 @@ type Client struct {
 	dhtNode   *dht.IpfsDHT
 	discovery *routing.RoutingDiscovery
 	pubsub    *pubsub.PubSub
+	ds        DataStore
 }
 
 func (c *Client) Advertise(serviceName string) {
