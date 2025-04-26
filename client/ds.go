@@ -1,8 +1,6 @@
 package client
 
 import (
-	"fmt"
-
 	"github.com/dgraph-io/badger/v4"
 )
 
@@ -10,7 +8,7 @@ type DataStore interface {
 	Put(key []byte, value []byte) error
 	Get(key []byte) ([]byte, error)
 	Delete(key []byte) error
-	// ListPrefix(prefix []byte)  error
+	// ListPrefix(prefix []byte) error
 	Close() error
 }
 
@@ -42,7 +40,6 @@ func (ds *BadgerDataStore) Put(key []byte, value []byte) error {
 func (ds *BadgerDataStore) Get(key []byte) ([]byte, error) {
 	var value []byte
 	err := ds.db.View(func(txn *badger.Txn) error {
-		txn.NewIterator(badger.DefaultIteratorOptions)
 		item, err := txn.Get(key)
 		if err != nil {
 			return err
@@ -59,23 +56,22 @@ func (ds *BadgerDataStore) Delete(key []byte) error {
 	})
 }
 
-func (ds *BadgerDataStore) ListPrefix(prefix []byte) error {
-	return ds.db.View(func(txn *badger.Txn) error {
+func (ds *BadgerDataStore) ListPrefix(prefix []byte) ([][]byte, error) {
+	keys := make([][]byte, 0)
+	err := ds.db.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.Prefix = prefix
+		opts.PrefetchValues = false
 		it := txn.NewIterator(opts)
+		defer it.Close()
 		for it.Rewind(); it.Valid(); it.Next() {
 			item := it.Item()
 			k := item.KeyCopy(nil)
-			v, err := item.ValueCopy(nil)
-			if err != nil {
-				return err
-			}
-			fmt.Printf("key=%s, value=%s\n", k, v)
+			keys = append(keys, k)
 		}
-		it.Close()
 		return nil
 	})
+	return keys, err
 }
 
 func (ds *BadgerDataStore) Close() error {

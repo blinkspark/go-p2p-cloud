@@ -32,7 +32,8 @@ func playReedSolomon() {
 	for i := range totalShards {
 		oFileName := fmt.Sprintf("%s.%d", iFileName, i)
 		oPath := filepath.Join(odir, oFileName)
-		oFile, err := os.Create(oPath)
+		var oFile *os.File
+		oFile, err = os.Create(oPath)
 		if err != nil {
 			log.Panic(err)
 		}
