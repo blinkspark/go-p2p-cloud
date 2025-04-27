@@ -34,18 +34,20 @@ func LoadConfig(path string) (*HostConfig, error) {
 	config := &HostConfig{}
 
 	configFile, err := os.Open(path)
+	var defaultConfig *HostConfig
 	if err != nil {
 		if os.IsNotExist(err) {
-			defaultConfig, err := DefaultConfig()
+			defaultConfig, err = DefaultConfig()
 			if err != nil {
 				return nil, err
 			}
-			configFile, err := os.Create(path)
+			configFile, err = os.Create(path)
 			if err != nil {
 				return nil, err
 			}
 			defer configFile.Close()
-			configBytes, err := json.MarshalIndent(defaultConfig, "", "  ")
+			var configBytes []byte
+			configBytes, err = json.MarshalIndent(defaultConfig, "", "  ")
 			if err != nil {
 				return nil, err
 			}
