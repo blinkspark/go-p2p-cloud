@@ -115,12 +115,13 @@ func TestClientGetConfig(t *testing.T) {
 	// 创建客户端
 	client, err := NewClient(configPath)
 	assert.NoError(t, err)
-	defer client.Close()
 
 	// 测试获取配置
 	config := client.GetConfig()
 	assert.NotNil(t, config, "配置不应为空")
 
 	// 清理数据存储目录
-	os.RemoveAll(config.DataStorePath)
+	client.Close()
+	err = os.RemoveAll(config.DataStorePath)
+	assert.NoError(t, err)
 }
