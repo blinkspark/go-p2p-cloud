@@ -11,8 +11,9 @@ import (
 )
 
 type HostConfig struct {
-	PrivateKey []byte `json:"private_key"`
-	Port       int    `json:"port"`
+	PrivateKey    []byte `json:"private_key"`
+	Port          int    `json:"port"`
+	DataStorePath string `json:"data_store_path"`
 }
 
 func DefaultConfig() (*HostConfig, error) {
@@ -25,8 +26,9 @@ func DefaultConfig() (*HostConfig, error) {
 		return nil, err
 	}
 	return &HostConfig{
-		PrivateKey: privKeyBytes,
-		Port:       12233,
+		PrivateKey:    privKeyBytes,
+		Port:          12233,
+		DataStorePath: "./data",
 	}, nil
 }
 

@@ -21,6 +21,9 @@ func TestNewClient(t *testing.T) {
 	// 测试关闭客户端
 	err = client.Close()
 	assert.NoError(t, err)
+
+	cfg := client.GetConfig()
+	os.RemoveAll(cfg.DataStorePath)
 }
 
 func TestClientAddrs(t *testing.T) {
@@ -41,6 +44,7 @@ func TestClientAddrs(t *testing.T) {
 func TestClientPeers(t *testing.T) {
 	// 创建临时配置文件
 	configPath := "test_config.json"
+	defer os.Remove(configPath)
 
 	// 创建客户端
 	client, err := NewClient(configPath)
@@ -51,6 +55,21 @@ func TestClientPeers(t *testing.T) {
 	peers := client.Peers()
 	// 初始可能没有连接的对等点，所以这里只验证返回类型
 	assert.IsType(t, []peer.ID{}, peers)
+}
+
+func TestClientID(t *testing.T) {
+	// 创建临时配置文件
+	configPath := "test_config.json"
+	defer os.Remove(configPath)
+
+	// 创建客户端
+	client, err := NewClient(configPath)
+	assert.NoError(t, err)
+	defer client.Close()
+
+	// 测试获取客户端ID
+	id := client.ID()
+	assert.NotEmpty(t, id, "客户端ID不应为空")
 }
 
 func TestClientAdvertiseAndFindPeers(t *testing.T) {
@@ -86,4 +105,22 @@ func TestClientAdvertiseAndFindPeers(t *testing.T) {
 	case <-ctx.Done():
 		// 超时是可接受的，因为在测试环境中可能找不到对等点
 	}
+}
+
+func TestClientGetConfig(t *testing.T) {
+	// 创建临时配置文件
+	configPath := "test_config.json"
+	defer os.Remove(configPath)
+
+	// 创建客户端
+	client, err := NewClient(configPath)
+	assert.NoError(t, err)
+	defer client.Close()
+
+	// 测试获取配置
+	config := client.GetConfig()
+	assert.NotNil(t, config, "配置不应为空")
+
+	// 清理数据存储目录
+	os.RemoveAll(config.DataStorePath)
 }

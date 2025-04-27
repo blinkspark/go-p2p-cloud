@@ -16,11 +16,13 @@ import (
 )
 
 type Client struct {
-	host      host.Host
-	dhtNode   *dht.IpfsDHT
-	discovery *routing.RoutingDiscovery
-	pubsub    *pubsub.PubSub
-	ds        DataStore
+	host       host.Host
+	dhtNode    *dht.IpfsDHT
+	discovery  *routing.RoutingDiscovery
+	pubsub     *pubsub.PubSub
+	ds         DataStore
+	configPath string
+	config     *config.HostConfig
 }
 
 func (c *Client) Advertise(serviceName string) {
@@ -65,6 +67,14 @@ func (c *Client) Bootstrap() error {
 	return nil
 }
 
+func (c *Client) GetConfig() *config.HostConfig {
+	return c.config
+}
+
+func (c *Client) ID() string {
+	return c.host.ID().String()
+}
+
 func (c *Client) Addrs() []string {
 	id := c.host.ID()
 	addrs := c.host.Addrs()
@@ -81,6 +91,10 @@ func (c *Client) Close() error {
 		return err
 	}
 	err = c.dhtNode.Close()
+	if err != nil {
+		return err
+	}
+	err = c.ds.Close()
 	if err != nil {
 		return err
 	}
@@ -114,11 +128,19 @@ func NewClient(configPath string) (*Client, error) {
 		return nil, err
 	}
 
+	ds, err := NewBadgerDataStore(cfg.DataStorePath, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	client := &Client{
-		host:      h,
-		dhtNode:   dhtNode,
-		discovery: discovery,
-		pubsub:    ps,
+		host:       h,
+		dhtNode:    dhtNode,
+		discovery:  discovery,
+		pubsub:     ps,
+		ds:         ds,
+		config:     cfg,
+		configPath: configPath,
 	}
 
 	log.Println("Bootstraping...")
